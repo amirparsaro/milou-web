@@ -5,11 +5,15 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 
 @Entity
-@Table(name="users")
+@Table(name="messages")
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
+    private User sender;
 
     @Basic(optional = false)
     private String title;
@@ -17,12 +21,33 @@ public class Message {
     @Basic(optional = false)
     private String body;
 
-    private ArrayList<String> participants;
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ArrayList<Recipient> recipients;
 
-    public Message(String title, String body, ArrayList<String> participants) {
+    @ManyToOne
+    @JoinColumn(name = "replied_to_id")
+    private Message repliedTo;
+
+    @ManyToOne
+    @JoinColumn(name = "forwarded_from_id")
+    private Message forwardedFrom;
+
+    public Message(User sender, String title, String body) {
+        this.sender = sender;
         this.title = title;
         this.body = body;
-        this.participants = participants;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public User getSender() {
+        return sender;
+    }
+
+    public void setSender(User sender) {
+        this.sender = sender;
     }
 
     public String getTitle() {
@@ -33,14 +58,6 @@ public class Message {
         this.title = title;
     }
 
-    public ArrayList<String> getParticipants() {
-        return participants;
-    }
-
-    public void setParticipants(ArrayList<String> participants) {
-        this.participants = participants;
-    }
-
     public String getBody() {
         return body;
     }
@@ -49,7 +66,27 @@ public class Message {
         this.body = body;
     }
 
-    public Integer getId() {
-        return id;
+    public ArrayList<Recipient> getRecipients() {
+        return recipients;
+    }
+
+    public void setRecipients(ArrayList<Recipient> recipients) {
+        this.recipients = recipients;
+    }
+
+    public Message getRepliedTo() {
+        return repliedTo;
+    }
+
+    public void setRepliedTo(Message repliedTo) {
+        this.repliedTo = repliedTo;
+    }
+
+    public Message getForwardedFrom() {
+        return forwardedFrom;
+    }
+
+    public void setForwardedFrom(Message forwardedFrom) {
+        this.forwardedFrom = forwardedFrom;
     }
 }
