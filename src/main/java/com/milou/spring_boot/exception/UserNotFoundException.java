@@ -5,7 +5,7 @@ public class UserNotFoundException extends Exception {
         super("Cannot find user.");
     }
 
-    public UserNotFoundException(Long id) {
+    public UserNotFoundException(Integer id) {
         super("Cannot find user with id = " + id + ".");
     }
 }
