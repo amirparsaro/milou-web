@@ -1,4 +1,5 @@
-use milou_emails;
+use
+    milou_emails;
 
 create table users
 (
@@ -18,15 +19,16 @@ create table messages
     forwarded_from_id int            null,
 
     foreign key (sender_id) references users (id),
-    foreign key (replied_to_id) references messages(id),
-    foreign key (forwarded_from_id) references messages(id)
+    foreign key (replied_to_id) references messages (id),
+    foreign key (forwarded_from_id) references messages (id)
 );
 
 create table recipients
 (
     id           int primary key auto_increment,
-    message_id   int not null,
-    recipient_id int not null,
+    message_read boolean default false not null,
+    message_id   int                   not null,
+    recipient_id int                   not null,
 
     foreign key (message_id) references messages (id),
     foreign key (recipient_id) references users (id)
