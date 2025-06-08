@@ -1,5 +1,7 @@
 package com.milou.spring_boot.service;
 
+import com.milou.spring_boot.exception.InvalidCredentialsException;
+import com.milou.spring_boot.exception.InvalidRegistrationException;
 import com.milou.spring_boot.exception.UserAlreadyExistsException;
 import com.milou.spring_boot.exception.UserNotFoundException;
 import com.milou.spring_boot.model.User;
@@ -26,7 +28,7 @@ public class UserService {
     }
 
     public User getUser(Session session, Integer id) throws UserNotFoundException {
-        List<User> allUsers = session.createNativeQuery("SELECT * FROM users WHERE id = :given_id", User.class)
+        List<User> allUsers = session.createNativeQuery("select * from users where id = :given_id", User.class)
                 .setParameter("given_id", id)
                 .getResultList();
 
@@ -51,6 +53,38 @@ public class UserService {
         closeSessionFactory();
 
         return user;
+    }
+
+    public User getUserByEmailPassword(String email, String password) throws UserNotFoundException {
+        List<User> allUsers = sessionFactory.fromTransaction(session -> {
+            return session.createNativeQuery("select * from users " +
+                            "where email = :given_email and " +
+                            "password = :given_password", User.class)
+                    .setParameter("given_email", email)
+                    .setParameter("given_password", password)
+                    .getResultList();
+        });
+
+        if (allUsers.isEmpty()) {
+            throw new UserNotFoundException();
+        }
+
+        return allUsers.getFirst();
+    }
+
+    public User getUserByEmail(String name) throws UserNotFoundException {
+        List<User> allUsers = sessionFactory.fromTransaction(session -> {
+            return session.createNativeQuery("select * from users " +
+                            "where email = :given_email", User.class)
+                    .setParameter("given_email", name)
+                    .getResultList();
+        });
+
+        if (allUsers.isEmpty()) {
+            throw new UserNotFoundException();
+        }
+
+        return allUsers.getFirst();
     }
 
     public void deleteUser(Integer id) throws UserNotFoundException {
@@ -113,5 +147,39 @@ public class UserService {
                     .setParameter("given_id", user.getId())
                     .executeUpdate();
         });
+    }
+
+    public User logIn(String email, String password) throws InvalidCredentialsException {
+        if (!(email.endsWith("@milou.com")))
+            email += "@milou.com";
+
+        User user = null;
+        try {
+            user = getUserByEmailPassword(email, password);
+            if (user != null) {
+                return user;
+            }
+        } catch (UserNotFoundException e) {}
+
+        throw new InvalidCredentialsException("User not found. Email or Password might be wrong.");
+    }
+
+    public User signUp(String name, String email, String password) throws InvalidRegistrationException {
+        User user = null;
+        if (!(email.endsWith("@milou.com")))
+            email += "@milou.com";
+
+        if (password.length() < 8)
+            throw new InvalidRegistrationException("Password length is less than 8 characters.");
+
+        try {
+            if (getUserByEmail(email) != null)
+                throw new InvalidRegistrationException("Email already exists.");
+        } catch (UserNotFoundException e) {}
+
+        user = new User(name, email, password);
+        addUser(user);
+
+        return user;
     }
 }
