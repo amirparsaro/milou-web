@@ -5,7 +5,7 @@ public class MessageNotFoundException extends Exception {
         super("Cannot find Message.");
     }
 
-    public MessageNotFoundException(Long id) {
+    public MessageNotFoundException(int id) {
         super("Cannot find Message with id = " + id + ".");
     }
 }
