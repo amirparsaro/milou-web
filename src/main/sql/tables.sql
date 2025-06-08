@@ -12,6 +12,8 @@ create table users
 create table messages
 (
     id                int primary key auto_increment,
+    code              nvarchar(255)  not null,
+    date              date           not null,
     title             nvarchar(255)  not null,
     body              nvarchar(6000) not null,
     sender_id         int            not null,
