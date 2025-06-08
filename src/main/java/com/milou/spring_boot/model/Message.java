@@ -2,17 +2,24 @@ package com.milou.spring_boot.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 @Entity
-@Table(name="messages")
+@Table(name = "messages")
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(nullable = false)
+    private String code;
+
+    @Column(nullable = false)
+    private LocalDate date;
+
     @ManyToOne(optional = false)
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
 
     @Basic(optional = false)
@@ -32,10 +39,20 @@ public class Message {
     @JoinColumn(name = "forwarded_from_id")
     private Message forwardedFrom;
 
-    public Message(User sender, String title, String body) {
+    public Message() {
+    }
+
+    public Message(User sender, String title, String body, ArrayList<Recipient> recipients, Message repliedTo, Message forwardedFrom) {
         this.sender = sender;
         this.title = title;
         this.body = body;
+        this.recipients = recipients;
+        this.setDate(LocalDate.now());
+        if (repliedTo != null)
+            this.repliedTo = repliedTo;
+        if (forwardedFrom != null)
+            this.forwardedFrom = forwardedFrom;
+        setCode();
     }
 
     public Integer getId() {
@@ -48,6 +65,23 @@ public class Message {
 
     public void setSender(User sender) {
         this.sender = sender;
+    }
+
+    private void setCode() {
+        String code = String.format("%6s", Integer.toString(this.id, 36))
+                .replace(' ', '0').toUpperCase();
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
     }
 
     public String getTitle() {
