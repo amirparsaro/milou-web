@@ -57,7 +57,7 @@ public class MessageService {
         return message;
     }
 
-    public Message getMessage(String code) throws MessageNotFoundException {
+    public Message getMessageByCode(String code) throws MessageNotFoundException {
         setUpSessionFactory();
 
         Message message = sessionFactory.fromTransaction(session -> {
@@ -152,5 +152,92 @@ public class MessageService {
                     .setParameter("id", message.getId())
                     .executeUpdate();
         });
+    }
+
+    public String createMessage(User sender, ArrayList<User> recipients, String title, String body) {
+        Message message = new Message(sender, title, body, null, null, null); // todo: control recipients in RecipientControl
+
+        ArrayList<Recipient> recipientsArraylist = RecipientService.createRecipientFromUser(recipients, message);
+        message.setRecipients(recipientsArraylist);
+        addMessage(message);
+        return message.getCode();
+    }
+
+    public String createReplyToMessage(User sender, String messageCode, String body) throws MessageNotFoundException {
+        Message repliedTo = getMessageByCode(messageCode);
+        Message message = new Message(sender, "[Re] " + repliedTo.getTitle(), body, null, repliedTo, repliedTo.getForwardedFrom());
+
+        Recipient recipient = RecipientService.createRecipientFromUser(sender, message);
+        ArrayList<Recipient> recipients = new ArrayList<>();
+        recipients.add(recipient);
+        message.setRecipients(recipients);
+        addMessage(message);
+
+        return message.getCode();
+    }
+
+    public String createForwardedMessage(User sender, ArrayList<User> recipients, String messageCode) throws MessageNotFoundException {
+        Message forwardedFrom = getMessageByCode(messageCode);
+        Message message = new Message(sender, "[Fw] " + forwardedFrom.getTitle(), forwardedFrom.getBody(), null, forwardedFrom.getRepliedTo(), forwardedFrom); // todo: control recipients in RecipientControl
+
+        ArrayList<Recipient> recipientsArraylist = RecipientService.createRecipientFromUser(recipients, message);
+        message.setRecipients(recipientsArraylist);
+        addMessage(message);
+        return message.getCode();
+    }
+
+    private ArrayList<Message> getAllReceivedMessages(User receiver) {
+        setUpSessionFactory();
+
+        List<Message> allMessages = sessionFactory.fromTransaction(session ->
+                session.createNativeQuery("select m.*\n" +
+                                "from messages m\n" +
+                                "join recipients r on m.id = r.message_id\n" +
+                                "join users u on r.recipient_id = u.id\n" +
+                                "where u.id = :user_id", Message.class)
+                .setParameter("user_id", receiver.getId())
+                .getResultList());
+
+        closeSessionFactory();
+        return new ArrayList<>(allMessages);
+    }
+
+    public ArrayList<Message> getAllSentMessages(User sender) {
+        setUpSessionFactory();
+
+        List<Message> allMessages = sessionFactory.fromTransaction(session ->
+                session.createNativeQuery("select * from messages where sender_id = :given_id", Message.class)
+                        .setParameter("given_id", sender.getId())
+                        .getResultList());
+
+        closeSessionFactory();
+        return new ArrayList<>(allMessages);
+    }
+
+    public ArrayList<Message> getAllMessages(User user) {
+        ArrayList<Message> sentMessages = getAllSentMessages(user);
+        ArrayList<Message> receivedMessages = getAllReceivedMessages(user);
+
+        ArrayList<Message> allMessages = new ArrayList<>(sentMessages);
+        allMessages.addAll(receivedMessages);
+
+        return allMessages;
+    }
+
+    public ArrayList<Message> getUnreadReceivedMessages(User receiver) {
+        setUpSessionFactory();
+
+        List<Message> allMessages = sessionFactory.fromTransaction(session ->
+                session.createNativeQuery("select m.*\n" +
+                                "from messages m\n" +
+                                "join recipients r on m.id = r.message_id\n" +
+                                "join users u on r.recipient_id = u.id\n" +
+                                "where u.id = :user_id\n" +
+                                "and r.is_read = false", Message.class)
+                        .setParameter("user_id", receiver.getId())
+                        .getResultList());
+
+        closeSessionFactory();
+        return new ArrayList<>(allMessages);
     }
 }

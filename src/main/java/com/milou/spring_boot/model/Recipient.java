@@ -13,6 +13,9 @@ public class Recipient {
     @JoinColumn(name = "message_id", nullable = false)
     private Message message;
 
+    @Basic(optional = false)
+    private boolean read;
+
     @ManyToOne
     @JoinColumn(name = "recipient_id", nullable = false)
     private User recipient;
@@ -20,6 +23,7 @@ public class Recipient {
     public Recipient(Message message, User recipient) {
         this.message = message;
         this.recipient = recipient;
+        this.read = false;
     }
 
     public Message getMessage() {
@@ -40,5 +44,13 @@ public class Recipient {
 
     public Integer getId() {
         return id;
+    }
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
     }
 }
