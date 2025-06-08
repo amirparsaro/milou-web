@@ -9,13 +9,13 @@
             com.mysql.cj.jdbc.Driver
         </property>
         <property name="hibernate.connection.url">
-            jdbc:mysql://localhost:3307/register_db
+            YOUR_DB_URL
         </property>
         <property name="hibernate.connection.username">
-            root
+            YOUR_USERNAME
         </property>
         <property name="hibernate.connection.password">
-            1385Parsa
+            YOUR_PASSWORD
         </property>
         <!-- Hibernate settings -->
         <property name="hibernate.show_sql">true</property>
@@ -23,6 +23,8 @@
         <property name="hibernate.highlight_sql">true</property>
 
         <!-- Mappings -->
-        <mapping class="register.User"/>
+                <mapping class="com.milou.spring_boot.model.User"/>
+                <mapping class="com.milou.spring_boot.model.Message"/>
+                <mapping class="com.milou.spring_boot.model.Recipient"/>
     </session-factory>
 </hibernate-configuration>
