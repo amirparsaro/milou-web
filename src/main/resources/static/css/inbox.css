@@ -1,0 +1,104 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 30vh;
+    background: #432416;
+    color: #f4ede8;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: #4b2f20;
+    color: #f4ede8;
+    padding: 10px 20px;
+}
+
+.inbox {
+    flex: 1;
+    display: flex;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.email-list {
+    width: 40%;
+    border-right: 1px solid #ddd;
+    padding-right: 10px;
+}
+
+.email-list .email-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.email-list .email-item:hover {
+    background-color: #f9f9f9;
+}
+
+.email-content {
+    flex: 1;
+    padding: 10px;
+}
+
+.logo {
+    height: 40px;
+    width: auto;
+    user-select: none;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.title {
+    margin: 0;
+    user-select: none;
+
+}
+
+.compose-container {
+    margin-top: auto;
+    padding: 10px;
+    text-align: center;
+}
+
+.compose {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #8a5c49;
+    color: #f4ede8;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.compose:hover {
+    background-color: #9e6851;
+}
+
+.links {
+    margin-top: 25px;
+}
