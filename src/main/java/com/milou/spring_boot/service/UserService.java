@@ -1,9 +1,6 @@
 package com.milou.spring_boot.service;
 
-import com.milou.spring_boot.exception.InvalidCredentialsException;
-import com.milou.spring_boot.exception.InvalidRegistrationException;
-import com.milou.spring_boot.exception.UserAlreadyExistsException;
-import com.milou.spring_boot.exception.UserNotFoundException;
+import com.milou.spring_boot.exception.*;
 import com.milou.spring_boot.model.User;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
