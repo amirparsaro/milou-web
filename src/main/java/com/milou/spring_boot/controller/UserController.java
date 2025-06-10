@@ -1,44 +1,56 @@
 package com.milou.spring_boot.controller;
 
-import java.util.List;
-
+import com.milou.spring_boot.exception.InvalidCredentialsException;
+import com.milou.spring_boot.exception.InvalidRegistrationException;
 import com.milou.spring_boot.exception.UserNotFoundException;
 import com.milou.spring_boot.model.User;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import com.milou.spring_boot.service.AuthService;
+import com.milou.spring_boot.service.UserService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequestMapping("/api/users")
 public class UserController {
 
-    @GetMapping("/Users")
-    public List<User> all() {
-        return null;
+    @GetMapping("/log-in")
+    public static ResponseEntity<String> logIn(@RequestParam String email,
+                                               @RequestParam String password) {
+        User user;
+        try {
+            user = UserService.logIn(email, password);
+        } catch (InvalidCredentialsException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+        String token = AuthService.storeUserToken(user);
+        return ResponseEntity.status(HttpStatus.FOUND).body(token);
     }
 
-    @PostMapping("/Users")
-    public User newUser(@RequestBody User newUser) {
-        return null;
+    @GetMapping("/sign-up")
+    public static ResponseEntity<String> signUp(@RequestParam String name,
+                                                @RequestParam String email,
+                                                @RequestParam String password) {
+        User user;
+        try {
+            user = UserService.signUp(name, email, password);
+        } catch (InvalidRegistrationException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+        String token = AuthService.storeUserToken(user);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(token);
     }
 
-    @GetMapping("/Users/{id}")
-    public User one(@PathVariable Long id) throws UserNotFoundException {
+    @GetMapping("/log-out")
+    public static ResponseEntity<String> logOut(@RequestHeader("Authorization") String token) {
+        try {
+            UserService.logOut(token);
+        } catch (UserNotFoundException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
 
-        return null;
-    }
-
-    @PutMapping("/Users/{id}")
-    public User replaceUser(@RequestBody User newUser, @PathVariable Long id) {
-
-        return null;
-    }
-
-    @DeleteMapping("/Users/{id}")
-    public void deleteUser(@PathVariable Long id) {
-
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(token);
     }
 }
