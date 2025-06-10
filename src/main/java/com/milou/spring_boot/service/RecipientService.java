@@ -6,11 +6,13 @@ import com.milou.spring_boot.model.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Service
 public class RecipientService {
     private static SessionFactory sessionFactory;
 
@@ -135,8 +137,8 @@ public class RecipientService {
         return recipient;
     }
 
-    public static ArrayList<Recipient> createRecipientFromUser(ArrayList<User> users, Message message) {
-        ArrayList<Recipient> recipients = new ArrayList<>();
+    public static List<Recipient> createRecipientFromUsers(List<User> users, Message message) {
+        List<Recipient> recipients = new ArrayList<>();
         for (User user : users) {
             recipients.add(new Recipient(message, user));
         }

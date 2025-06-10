@@ -10,7 +10,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,7 +28,7 @@ public class MessageService {
         sessionFactory.close();
     }
 
-    public Message getMessage(Session session, Integer id) throws MessageNotFoundException {
+    public static Message getMessage(Session session, Integer id) throws MessageNotFoundException {
         List<Message> allMessages = session.createNativeQuery("select * from messages where id = :given_id", Message.class)
                 .setParameter("given_id", id)
                 .getResultList();
@@ -41,7 +40,7 @@ public class MessageService {
         return allMessages.getFirst();
     }
 
-    public Message getMessage(Integer id) throws MessageNotFoundException {
+    public static Message getMessage(Integer id) throws MessageNotFoundException {
         setUpSessionFactory();
 
         Message message = sessionFactory.fromTransaction(session -> {
@@ -57,7 +56,7 @@ public class MessageService {
         return message;
     }
 
-    public Message getMessageByCode(String code) throws MessageNotFoundException {
+    public static Message getMessageByCode(String code) throws MessageNotFoundException {
         setUpSessionFactory();
 
         Message message = sessionFactory.fromTransaction(session -> {
@@ -74,7 +73,7 @@ public class MessageService {
         return message;
     }
 
-    public void deleteMessage(Integer id) throws MessageNotFoundException {
+    public static void deleteMessage(Integer id) throws MessageNotFoundException {
         setUpSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
@@ -91,7 +90,7 @@ public class MessageService {
         closeSessionFactory();
     }
 
-    public void addMessage(Message message) throws MessageAlreadyExistsException {
+    public static void addMessage(Message message) throws MessageAlreadyExistsException {
         setUpSessionFactory();
         AtomicBoolean messageFound = new AtomicBoolean(true);
         sessionFactory.inTransaction(session -> {
@@ -122,7 +121,7 @@ public class MessageService {
         closeSessionFactory();
     }
 
-    public void updateMessage(Message message) throws MessageNotFoundException {
+    public static void updateMessage(Message message) throws MessageNotFoundException {
         setUpSessionFactory();
 
         sessionFactory.inTransaction(session -> {
@@ -154,16 +153,16 @@ public class MessageService {
         });
     }
 
-    public String createMessage(User sender, ArrayList<User> recipients, String title, String body) {
-        Message message = new Message(sender, title, body, null, null, null); // todo: control recipients in RecipientControl
+    public static String createMessage(User sender, List<User> recipients, String title, String body) {
+        Message message = new Message(sender, title, body, null, null, null);
 
-        ArrayList<Recipient> recipientsArraylist = RecipientService.createRecipientFromUser(recipients, message);
+        ArrayList<Recipient> recipientsArraylist = (ArrayList<Recipient>) RecipientService.createRecipientFromUsers(recipients, message);
         message.setRecipients(recipientsArraylist);
         addMessage(message);
         return message.getCode();
     }
 
-    public String createReplyToMessage(User sender, String messageCode, String body) throws MessageNotFoundException {
+    public static String createReplyToMessage(User sender, String messageCode, String body) throws MessageNotFoundException, MessageAlreadyExistsException {
         Message repliedTo = getMessageByCode(messageCode);
         Message message = new Message(sender, "[Re] " + repliedTo.getTitle(), body, null, repliedTo, repliedTo.getForwardedFrom());
 
@@ -176,17 +175,17 @@ public class MessageService {
         return message.getCode();
     }
 
-    public String createForwardedMessage(User sender, ArrayList<User> recipients, String messageCode) throws MessageNotFoundException {
+    public static String createForwardedMessage(User sender, ArrayList<User> recipients, String messageCode) throws MessageNotFoundException, MessageAlreadyExistsException {
         Message forwardedFrom = getMessageByCode(messageCode);
-        Message message = new Message(sender, "[Fw] " + forwardedFrom.getTitle(), forwardedFrom.getBody(), null, forwardedFrom.getRepliedTo(), forwardedFrom); // todo: control recipients in RecipientControl
+        Message message = new Message(sender, "[Fw] " + forwardedFrom.getTitle(), forwardedFrom.getBody(), null, forwardedFrom.getRepliedTo(), forwardedFrom);
 
-        ArrayList<Recipient> recipientsArraylist = RecipientService.createRecipientFromUser(recipients, message);
+        ArrayList<Recipient> recipientsArraylist = (ArrayList<Recipient>) RecipientService.createRecipientFromUsers(recipients, message);
         message.setRecipients(recipientsArraylist);
         addMessage(message);
         return message.getCode();
     }
 
-    private ArrayList<Message> getAllReceivedMessages(User receiver) {
+    private static ArrayList<Message> getAllReceivedMessages(User receiver) {
         setUpSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->
@@ -202,7 +201,7 @@ public class MessageService {
         return new ArrayList<>(allMessages);
     }
 
-    public ArrayList<Message> getAllSentMessages(User sender) {
+    public static ArrayList<Message> getAllSentMessages(User sender) {
         setUpSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->
@@ -214,7 +213,7 @@ public class MessageService {
         return new ArrayList<>(allMessages);
     }
 
-    public ArrayList<Message> getAllMessages(User user) {
+    public static ArrayList<Message> getAllMessages(User user) {
         ArrayList<Message> sentMessages = getAllSentMessages(user);
         ArrayList<Message> receivedMessages = getAllReceivedMessages(user);
 
@@ -224,7 +223,7 @@ public class MessageService {
         return allMessages;
     }
 
-    public ArrayList<Message> getUnreadReceivedMessages(User receiver) {
+    public static ArrayList<Message> getUnreadReceivedMessages(User receiver) {
         setUpSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->

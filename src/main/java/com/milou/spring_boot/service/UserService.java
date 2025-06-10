@@ -69,11 +69,11 @@ public class UserService {
         return allUsers.getFirst();
     }
 
-    public static User getUserByEmail(String name) throws UserNotFoundException {
+    public static User getUserByEmail(String email) throws UserNotFoundException {
         List<User> allUsers = sessionFactory.fromTransaction(session -> {
             return session.createNativeQuery("select * from users " +
                             "where email = :given_email", User.class)
-                    .setParameter("given_email", name)
+                    .setParameter("given_email", email)
                     .getResultList();
         });
 
@@ -178,5 +178,9 @@ public class UserService {
         addUser(user);
 
         return user;
+    }
+
+    public static void logOut(String token) throws UserNotFoundException {
+            AuthService.removeToken(token);
     }
 }
