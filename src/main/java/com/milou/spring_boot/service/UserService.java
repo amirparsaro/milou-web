@@ -24,7 +24,7 @@ public class UserService {
         sessionFactory.close();
     }
 
-    public User getUser(Session session, Integer id) throws UserNotFoundException {
+    public static User getUser(Session session, Integer id) throws UserNotFoundException {
         List<User> allUsers = session.createNativeQuery("select * from users where id = :given_id", User.class)
                 .setParameter("given_id", id)
                 .getResultList();
@@ -36,7 +36,7 @@ public class UserService {
         return allUsers.getFirst();
     }
 
-    public User getUser(Integer id) throws UserNotFoundException {
+    public static User getUser(Integer id) throws UserNotFoundException {
         setUpSessionFactory();
 
         User user = sessionFactory.fromTransaction(session -> {
@@ -52,7 +52,7 @@ public class UserService {
         return user;
     }
 
-    public User getUserByEmailPassword(String email, String password) throws UserNotFoundException {
+    public static User getUserByEmailPassword(String email, String password) throws UserNotFoundException {
         List<User> allUsers = sessionFactory.fromTransaction(session -> {
             return session.createNativeQuery("select * from users " +
                             "where email = :given_email and " +
@@ -69,7 +69,7 @@ public class UserService {
         return allUsers.getFirst();
     }
 
-    public User getUserByEmail(String name) throws UserNotFoundException {
+    public static User getUserByEmail(String name) throws UserNotFoundException {
         List<User> allUsers = sessionFactory.fromTransaction(session -> {
             return session.createNativeQuery("select * from users " +
                             "where email = :given_email", User.class)
@@ -84,7 +84,7 @@ public class UserService {
         return allUsers.getFirst();
     }
 
-    public void deleteUser(Integer id) throws UserNotFoundException {
+    public static void deleteUser(Integer id) throws UserNotFoundException {
         setUpSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
@@ -101,7 +101,7 @@ public class UserService {
         closeSessionFactory();
     }
 
-    public void addUser(User user) {
+    public static void addUser(User user) {
         setUpSessionFactory();
         AtomicBoolean userFound = new AtomicBoolean(true);
         sessionFactory.inTransaction(session -> {
@@ -125,7 +125,7 @@ public class UserService {
         closeSessionFactory();
     }
 
-    public void updateUser(User user) throws UserNotFoundException {
+    public static void updateUser(User user) throws UserNotFoundException {
         setUpSessionFactory();
 
         sessionFactory.inTransaction(session -> {
@@ -146,7 +146,7 @@ public class UserService {
         });
     }
 
-    public User logIn(String email, String password) throws InvalidCredentialsException {
+    public static User logIn(String email, String password) throws InvalidCredentialsException {
         if (!(email.endsWith("@milou.com")))
             email += "@milou.com";
 
@@ -161,7 +161,7 @@ public class UserService {
         throw new InvalidCredentialsException("User not found. Email or Password might be wrong.");
     }
 
-    public User signUp(String name, String email, String password) throws InvalidRegistrationException {
+    public static User signUp(String name, String email, String password) throws InvalidRegistrationException {
         User user = null;
         if (!(email.endsWith("@milou.com")))
             email += "@milou.com";
