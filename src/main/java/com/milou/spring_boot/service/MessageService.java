@@ -1,5 +1,6 @@
 package com.milou.spring_boot.service;
 
+import com.milou.spring_boot.SessionFactoryManager;
 import com.milou.spring_boot.exception.MessageAlreadyExistsException;
 import com.milou.spring_boot.exception.MessageNotFoundException;
 import com.milou.spring_boot.model.Message;
@@ -16,18 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class MessageService {
-    private static SessionFactory sessionFactory;
-
-    private static void setUpSessionFactory() {
-        sessionFactory = new Configuration()
-                .configure("hibernate.cfg.xml")
-                .buildSessionFactory();
-    }
-
-    private static void closeSessionFactory() {
-        sessionFactory.close();
-    }
-
     public static Message getMessage(Session session, Integer id) throws MessageNotFoundException {
         List<Message> allMessages = session.createNativeQuery("select * from messages where id = :given_id", Message.class)
                 .setParameter("given_id", id)
@@ -41,7 +30,7 @@ public class MessageService {
     }
 
     public static Message getMessage(Integer id) throws MessageNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         Message message = sessionFactory.fromTransaction(session -> {
             try {
@@ -51,13 +40,12 @@ public class MessageService {
             }
         });
 
-        closeSessionFactory();
 
         return message;
     }
 
-    public static Message getMessageByCode(String code) throws MessageNotFoundException {
-        setUpSessionFactory();
+    public static Message getMessageByCode(String code) throws MessageNotFoundException, RuntimeException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         Message message = sessionFactory.fromTransaction(session -> {
             try {
@@ -68,13 +56,12 @@ public class MessageService {
             }
         });
 
-        closeSessionFactory();
 
         return message;
     }
 
     public static void deleteMessage(Integer id) throws MessageNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
                 Message message = getMessage(session, id);
@@ -87,42 +74,28 @@ public class MessageService {
                     .setParameter("given_id", id)
                     .executeUpdate();
         });
-        closeSessionFactory();
     }
 
-    public static void addMessage(Message message) throws MessageAlreadyExistsException {
-        setUpSessionFactory();
-        AtomicBoolean messageFound = new AtomicBoolean(true);
+    public static String addMessage(Message message, List<User> recipients) throws MessageAlreadyExistsException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
+
         sessionFactory.inTransaction(session -> {
-            try {
-                Message messageFromDb = getMessage(session, message.getId());
-            } catch (MessageNotFoundException e) {
-                messageFound.set(false);
-            }
+            session.persist(message);
+            session.flush();
 
-            if (messageFound.get()) {
-                throw new MessageAlreadyExistsException(message.getId());
-            }
+            message.setCode();
+            ArrayList<Recipient> recipientsArraylist = (ArrayList<Recipient>) RecipientService.createRecipientFromUsers(recipients, message, session);
+            message.setRecipients(recipientsArraylist);
+            session.merge(message);
+            session.flush();
 
-            session.createNativeMutationQuery(
-                            "insert into messages (code, date, title, body, sender_id, replied_to_id, forwarded_from_id) " +
-                                    "values (:code, :date, :title, :body, :senderId, :repliedToId, :forwardedFromId)")
-                    .setParameter("code", message.getCode())
-                    .setParameter("date", message.getDate())
-                    .setParameter("title", message.getTitle())
-                    .setParameter("body", message.getBody())
-                    .setParameter("senderId", message.getSender().getId())
-                    .setParameter("repliedToId",
-                            message.getRepliedTo() != null ? message.getRepliedTo().getId() : null)
-                    .setParameter("forwardedFromId",
-                            message.getForwardedFrom() != null ? message.getForwardedFrom().getId() : null)
-                    .executeUpdate();
         });
-        closeSessionFactory();
+
+        return message.getCode();
     }
 
     public static void updateMessage(Message message) throws MessageNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         sessionFactory.inTransaction(session -> {
             try {
@@ -156,37 +129,29 @@ public class MessageService {
     public static String createMessage(User sender, List<User> recipients, String title, String body) {
         Message message = new Message(sender, title, body, null, null, null);
 
-        ArrayList<Recipient> recipientsArraylist = (ArrayList<Recipient>) RecipientService.createRecipientFromUsers(recipients, message);
-        message.setRecipients(recipientsArraylist);
-        addMessage(message);
-        return message.getCode();
+        return addMessage(message, recipients);
     }
 
     public static String createReplyToMessage(User sender, String messageCode, String body) throws MessageNotFoundException, MessageAlreadyExistsException {
         Message repliedTo = getMessageByCode(messageCode);
         Message message = new Message(sender, "[Re] " + repliedTo.getTitle(), body, null, repliedTo, repliedTo.getForwardedFrom());
 
-        Recipient recipient = RecipientService.createRecipientFromUser(sender, message);
-        ArrayList<Recipient> recipients = new ArrayList<>();
-        recipients.add(recipient);
-        message.setRecipients(recipients);
-        addMessage(message);
+        User messageSender = repliedTo.getSender();
+        List<User> recipients = new ArrayList<>();
+        recipients.add(messageSender);
 
-        return message.getCode();
+        return addMessage(message, recipients);
     }
 
     public static String createForwardedMessage(User sender, ArrayList<User> recipients, String messageCode) throws MessageNotFoundException, MessageAlreadyExistsException {
         Message forwardedFrom = getMessageByCode(messageCode);
         Message message = new Message(sender, "[Fw] " + forwardedFrom.getTitle(), forwardedFrom.getBody(), null, forwardedFrom.getRepliedTo(), forwardedFrom);
 
-        ArrayList<Recipient> recipientsArraylist = (ArrayList<Recipient>) RecipientService.createRecipientFromUsers(recipients, message);
-        message.setRecipients(recipientsArraylist);
-        addMessage(message);
-        return message.getCode();
+        return addMessage(message, recipients);
     }
 
     private static ArrayList<Message> getAllReceivedMessages(User receiver) {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->
                 session.createNativeQuery("select m.*\n" +
@@ -194,22 +159,20 @@ public class MessageService {
                                 "join recipients r on m.id = r.message_id\n" +
                                 "join users u on r.recipient_id = u.id\n" +
                                 "where u.id = :user_id", Message.class)
-                .setParameter("user_id", receiver.getId())
-                .getResultList());
+                        .setParameter("user_id", receiver.getId())
+                        .getResultList());
 
-        closeSessionFactory();
         return new ArrayList<>(allMessages);
     }
 
     public static ArrayList<Message> getAllSentMessages(User sender) {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->
                 session.createNativeQuery("select * from messages where sender_id = :given_id", Message.class)
                         .setParameter("given_id", sender.getId())
                         .getResultList());
 
-        closeSessionFactory();
         return new ArrayList<>(allMessages);
     }
 
@@ -224,7 +187,7 @@ public class MessageService {
     }
 
     public static ArrayList<Message> getUnreadReceivedMessages(User receiver) {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         List<Message> allMessages = sessionFactory.fromTransaction(session ->
                 session.createNativeQuery("select m.*\n" +
@@ -236,7 +199,8 @@ public class MessageService {
                         .setParameter("user_id", receiver.getId())
                         .getResultList());
 
-        closeSessionFactory();
+        for (Message message : allMessages)
+            System.err.print(message.getId());
         return new ArrayList<>(allMessages);
     }
 }
