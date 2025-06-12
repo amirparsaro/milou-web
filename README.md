@@ -1,6 +1,6 @@
 # Milou Email
 
-Milou Email is a full-featured web-based email platform that allows users to securely register, log in, send, receive, and manage emails through an interface.
+Milou Email is a web-based email platform that allows users to securely register, log in, send, receive, and manage emails through an interface.
 
 ## Features
 
