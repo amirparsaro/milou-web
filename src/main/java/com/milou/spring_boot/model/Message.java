@@ -1,9 +1,11 @@
 package com.milou.spring_boot.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "messages")
@@ -12,7 +14,7 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String code;
 
     @Column(nullable = false)
@@ -28,8 +30,9 @@ public class Message {
     @Basic(optional = false)
     private String body;
 
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
-    private ArrayList<Recipient> recipients;
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    private List<Recipient> recipients;
 
     @ManyToOne
     @JoinColumn(name = "replied_to_id")
@@ -52,7 +55,6 @@ public class Message {
             this.repliedTo = repliedTo;
         if (forwardedFrom != null)
             this.forwardedFrom = forwardedFrom;
-        setCode();
     }
 
     public Integer getId() {
@@ -67,8 +69,8 @@ public class Message {
         this.sender = sender;
     }
 
-    private void setCode() {
-        String code = String.format("%6s", Integer.toString(this.id, 36))
+    public void setCode() {
+        this.code = String.format("%6s", Integer.toString(this.id, 36))
                 .replace(' ', '0').toUpperCase();
     }
 
@@ -100,11 +102,11 @@ public class Message {
         this.body = body;
     }
 
-    public ArrayList<Recipient> getRecipients() {
+    public List<Recipient> getRecipients() {
         return recipients;
     }
 
-    public void setRecipients(ArrayList<Recipient> recipients) {
+    public void setRecipients(List<Recipient> recipients) {
         this.recipients = recipients;
     }
 
