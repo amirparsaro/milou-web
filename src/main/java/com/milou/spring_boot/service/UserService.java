@@ -107,12 +107,7 @@ public class UserService {
                 throw new UserAlreadyExistsException(user.getId());
             }
 
-            session.createNativeMutationQuery("insert into users (name, password, email) " +
-                            "values (:given_name, :given_password, :given_email)")
-                    .setParameter("given_name", user.getName())
-                    .setParameter("given_password", user.getPassword())
-                    .setParameter("given_email", user.getEmail())
-                    .executeUpdate();
+            session.save(user);
         });
     }
 
