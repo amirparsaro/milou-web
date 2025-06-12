@@ -139,6 +139,11 @@ public class MessageService {
         User messageSender = repliedTo.getSender();
         List<User> recipients = new ArrayList<>();
         recipients.add(messageSender);
+        List<Recipient> recipientsForRepliedTo = repliedTo.getRecipients();
+        for (Recipient recipient : recipientsForRepliedTo) {
+            if (!recipient.getRecipient().getId().equals(sender.getId()))
+                recipients.add(recipient.getRecipient());
+        }
 
         return addMessage(message, recipients);
     }
