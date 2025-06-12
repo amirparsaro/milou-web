@@ -204,8 +204,6 @@ public class MessageService {
                         .setParameter("user_id", receiver.getId())
                         .getResultList());
 
-        for (Message message : allMessages)
-            System.err.print(message.getId());
         return new ArrayList<>(allMessages);
     }
 }
