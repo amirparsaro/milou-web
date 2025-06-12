@@ -1,5 +1,6 @@
 package com.milou.spring_boot.service;
 
+import com.milou.spring_boot.SessionFactoryManager;
 import com.milou.spring_boot.exception.*;
 import com.milou.spring_boot.model.User;
 import org.hibernate.Session;
@@ -12,19 +13,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class UserService {
-    private static SessionFactory sessionFactory;
-
-    private static void setUpSessionFactory() {
-        sessionFactory = new Configuration()
-                .configure("hibernate.cfg.xml")
-                .buildSessionFactory();
-    }
-
-    private static void closeSessionFactory() {
-        sessionFactory.close();
-    }
-
+    
     public static User getUser(Session session, Integer id) throws UserNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         List<User> allUsers = session.createNativeQuery("select * from users where id = :given_id", User.class)
                 .setParameter("given_id", id)
                 .getResultList();
@@ -33,11 +24,12 @@ public class UserService {
             throw new UserNotFoundException(id);
         }
 
+        
         return allUsers.getFirst();
     }
 
     public static User getUser(Integer id) throws UserNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         User user = sessionFactory.fromTransaction(session -> {
             try {
@@ -47,12 +39,11 @@ public class UserService {
             }
         });
 
-        closeSessionFactory();
-
         return user;
     }
 
     public static User getUserByEmailPassword(String email, String password) throws UserNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         List<User> allUsers = sessionFactory.fromTransaction(session -> {
             return session.createNativeQuery("select * from users " +
                             "where email = :given_email and " +
@@ -65,11 +56,12 @@ public class UserService {
         if (allUsers.isEmpty()) {
             throw new UserNotFoundException();
         }
-
+        
         return allUsers.getFirst();
     }
 
     public static User getUserByEmail(String email) throws UserNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         List<User> allUsers = sessionFactory.fromTransaction(session -> {
             return session.createNativeQuery("select * from users " +
                             "where email = :given_email", User.class)
@@ -80,12 +72,12 @@ public class UserService {
         if (allUsers.isEmpty()) {
             throw new UserNotFoundException();
         }
-
+        
         return allUsers.getFirst();
     }
 
     public static void deleteUser(Integer id) throws UserNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
                 User user = getUser(session, id);
@@ -98,11 +90,11 @@ public class UserService {
                     .setParameter("given_id", id)
                     .executeUpdate();
         });
-        closeSessionFactory();
+        
     }
 
     public static void addUser(User user) {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         AtomicBoolean userFound = new AtomicBoolean(true);
         sessionFactory.inTransaction(session -> {
             try {
@@ -122,11 +114,10 @@ public class UserService {
                     .setParameter("given_email", user.getEmail())
                     .executeUpdate();
         });
-        closeSessionFactory();
     }
 
     public static void updateUser(User user) throws UserNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
 
         sessionFactory.inTransaction(session -> {
             try {
@@ -163,9 +154,12 @@ public class UserService {
 
     public static User signUp(String name, String email, String password) throws InvalidRegistrationException {
         User user = null;
-        if (!(email.endsWith("@milou.com")))
-            email += "@milou.com";
-
+        if (!(email.endsWith("@milou.com"))) {
+            if (email.contains("@"))
+                throw new InvalidRegistrationException("email must end with @milou.com or have no @example.com suffix.");
+            else
+                email += "@milou.com";
+        }
         if (password.length() < 8)
             throw new InvalidRegistrationException("Password length is less than 8 characters.");
 

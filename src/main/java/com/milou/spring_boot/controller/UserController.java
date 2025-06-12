@@ -25,7 +25,7 @@ public class UserController {
         }
 
         String token = AuthService.storeUserToken(user);
-        return ResponseEntity.status(HttpStatus.FOUND).body(token);
+        return ResponseEntity.ok(token);
     }
 
     @GetMapping("/sign-up")
@@ -40,7 +40,7 @@ public class UserController {
         }
 
         String token = AuthService.storeUserToken(user);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(token);
+        return ResponseEntity.ok(token);
     }
 
     @GetMapping("/log-out")
@@ -51,6 +51,6 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(token);
+        return ResponseEntity.ok(token);
     }
 }
