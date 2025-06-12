@@ -1,7 +1,10 @@
 package com.milou.spring_boot.service;
 
+import com.milou.spring_boot.SessionFactoryManager;
+import com.milou.spring_boot.exception.MessageNotFoundException;
 import com.milou.spring_boot.exception.RecipientAlreadyExistsException;
 import com.milou.spring_boot.exception.RecipientNotFoundException;
+import com.milou.spring_boot.exception.UserNotFoundException;
 import com.milou.spring_boot.model.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -14,19 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class RecipientService {
-    private static SessionFactory sessionFactory;
-
-    private static void setUpSessionFactory() {
-        sessionFactory = new Configuration()
-                .configure("hibernate.cfg.xml")
-                .buildSessionFactory();
-    }
-
-    private static void closeSessionFactory() {
-        sessionFactory.close();
-    }
-
     public static Recipient getRecipient(Session session, Integer id) throws RecipientNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         List<Recipient> allRecipients = session.createNativeQuery("select * from recipients where id = :given_id", Recipient.class)
                 .setParameter("given_id", id)
                 .getResultList();
@@ -38,41 +30,37 @@ public class RecipientService {
         return allRecipients.getFirst();
     }
 
-    public static Recipient getRecipient(Integer id) throws RecipientNotFoundException {
-        setUpSessionFactory();
+    public static Recipient getRecipientByUserIdMessageCode(Integer userId, String messageCode) throws RecipientNotFoundException, MessageNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
+        int messageId = MessageService.getMessageByCode(messageCode).getId();
+        List<Recipient> allRecipients = sessionFactory.fromTransaction(session ->
+                session.createNativeQuery("select * from recipients where recipient_id = :user_id and message_id = :message_id", Recipient.class)
+                        .setParameter("user_id", userId)
+                        .setParameter("message_id", messageId)
+                        .getResultList());
 
-        Recipient recipient = sessionFactory.fromTransaction(session -> {
-            try {
-                return getRecipient(session, id);
-            } catch (RecipientNotFoundException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        if (allRecipients.isEmpty()) {
+            throw new RecipientNotFoundException();
+        }
 
-        closeSessionFactory();
-
-        return recipient;
+        return allRecipients.getFirst();
     }
 
-    public static Recipient getRecipient(String code) throws RecipientNotFoundException {
-        setUpSessionFactory();
-
+    public static Recipient getRecipient(Integer id) throws RecipientNotFoundException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         Recipient recipient = sessionFactory.fromTransaction(session -> {
             try {
-                int id = Integer.parseInt(code.toLowerCase(), 36);
                 return getRecipient(session, id);
             } catch (RecipientNotFoundException e) {
                 throw new RuntimeException(e);
             }
         });
-
-        closeSessionFactory();
 
         return recipient;
     }
 
     public static void deleteRecipient(Integer id) throws RecipientNotFoundException {
-        setUpSessionFactory();
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
                 Recipient recipient = getRecipient(session, id);
@@ -85,35 +73,17 @@ public class RecipientService {
                     .setParameter("given_id", id)
                     .executeUpdate();
         });
-        closeSessionFactory();
     }
 
-    public static void addRecipient(Recipient recipient) throws RecipientAlreadyExistsException {
-        setUpSessionFactory();
-        AtomicBoolean recipientFound = new AtomicBoolean(true);
-        sessionFactory.inTransaction(session -> {
-                    try {
-                        Recipient recipientFromDb = getRecipient(session, recipient.getId());
-                    } catch (RecipientNotFoundException e) {
-                        recipientFound.set(false);
-                    }
+    public static void addRecipient(Recipient recipient, Session session) throws RecipientAlreadyExistsException {
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
+        session.persist(recipient);
+        session.flush();
 
-                    if (recipientFound.get()) {
-                        throw new RecipientAlreadyExistsException(recipient.getId());
-                    }
-
-                    session.createNativeMutationQuery("insert into recipients (message_id, recipient_id) " +
-                                    "values (:message_id, :recipient_id)")
-                            .setParameter("message_id", recipient.getMessage().getId())
-                            .setParameter("recipient_id", recipient.getRecipient().getId())
-                            .executeUpdate();
-                });
-            closeSessionFactory();
     }
 
     public static void updateRecipient(Recipient recipient) throws RecipientNotFoundException {
-        setUpSessionFactory();
-
+        SessionFactory sessionFactory = SessionFactoryManager.getSessionFactory();
         sessionFactory.inTransaction(session -> {
             try {
                 Recipient existingRecipient = getRecipient(session, recipient.getId());
@@ -122,28 +92,31 @@ public class RecipientService {
             }
 
             session.createNativeMutationQuery("update recipients " +
-                            "set message_id = :message_id, recipient_id = :recipient_id " +
+                            "set message_id = :message_id, recipient_id = :recipient_id, is_read = :is_read " +
                             "where id = :id")
                     .setParameter("message_id", recipient.getMessage().getId())
                     .setParameter("recipient_id", recipient.getRecipient().getId())
                     .setParameter("id", recipient.getId())
+                    .setParameter("is_read", recipient.isRead())
                     .executeUpdate();
         });
     }
 
-    public static Recipient createRecipientFromUser(User user, Message message) {
+    public static Recipient createRecipientFromUser(User user, Message message, Session session) {
         Recipient recipient = new Recipient(message, user);
-        addRecipient(recipient);
+        addRecipient(recipient, session);
         return recipient;
     }
 
-    public static List<Recipient> createRecipientFromUsers(List<User> users, Message message) {
+    public static List<Recipient> createRecipientFromUsers(List<User> users, Message message, Session session) {
         List<Recipient> recipients = new ArrayList<>();
         for (User user : users) {
             recipients.add(new Recipient(message, user));
         }
 
-        recipients.forEach(RecipientService::addRecipient);
+        for (Recipient recipient : recipients) {
+            addRecipient(recipient, session);
+        }
         return recipients;
     }
 }
