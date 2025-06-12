@@ -27,6 +27,13 @@ Milou Email is a full-featured web-based email platform that allows users to sec
 - Compose Emails  
   - `/compose` page to write and send new emails
 
+## Tech Stack
+
+- **Frontend:** HTML, CSS, JavaScript  
+- **Backend:** Java (Spring Boot)  
+- **Database:** MySQL (using Hibernate ORM for Java integration)  
+
+
 ## Pages
 
 | Route        | Description                              |
@@ -119,9 +126,3 @@ Milou-web/
 │                   └── spring_boot/
 │                       └── ApplicationTests.java
 ```
-## Tech Stack
-
-- **Frontend:** HTML, CSS, JavaScript  
-- **Backend:** Java (Spring Boot)  
-- **Database:** MySQL (using Hibernate ORM for Java integration)  
-
