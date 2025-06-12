@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/compose-new.css">
+    <title>Compose | Milou</title>
+</head>
+
+<body>
+    <div class="compose-container">
+        <h2>Compose Email</h2>
+        <form id="emailForm">
+            <label for="to">To:</label>
+            <input type="email" id="to" name="to" placeholder="example1@milou.com, example2@milou.com" multiple
+                required />
+
+            <label for="subject">Subject:</label>
+            <input type="text" id="subject" name="subject" placeholder="Email subject" required />
+
+            <label for="message">Message:</label>
+            <textarea id="message" name="message" placeholder="Write your message here..." required></textarea>
+
+            <div class="buttons">
+                <button type="submit">Send</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/js/compose.js"></script>
+</body>
+
+</html>
