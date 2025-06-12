@@ -41,7 +41,6 @@ public class MessageController {
         }
 
         User user = AuthService.getUserFromToken(token);
-        System.err.println(user.getId());
         List<Message> userMessages = MessageService.getUnreadReceivedMessages(user);
         return ResponseEntity.ok(userMessages);
     }
