@@ -41,6 +41,7 @@ public class MessageController {
         }
 
         User user = AuthService.getUserFromToken(token);
+        System.err.println(user.getId());
         List<Message> userMessages = MessageService.getUnreadReceivedMessages(user);
         return ResponseEntity.ok(userMessages);
     }
@@ -72,7 +73,7 @@ public class MessageController {
         return ResponseEntity.ok(userMessage);
     }
 
-    @PostMapping("/create/message")
+    @GetMapping("/create/message")
     public ResponseEntity<String> createMessage(
             @RequestHeader("Authorization") String token,
             @RequestParam("recipientEmails") List<String> recipientEmails,
@@ -80,10 +81,6 @@ public class MessageController {
             @RequestParam("body") String body) {
 
         User sender = AuthService.getUserFromToken(token);
-        if (sender == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
-        }
-
         ArrayList<User> recipients = new ArrayList<>();
         for (String recipientEmail : recipientEmails) {
             User recipient = null;
@@ -92,6 +89,7 @@ public class MessageController {
             } catch (UserNotFoundException e) {
                 return ResponseEntity.badRequest().body("Recipient with email: " + recipientEmail + " not found");
             }
+
             if (recipient == null) {
                 return ResponseEntity.badRequest().body("Recipient with email: " + recipientEmail + " not found");
             }
@@ -106,7 +104,7 @@ public class MessageController {
         }
     }
 
-    @PostMapping("/create/reply")
+    @GetMapping("/create/reply")
     public ResponseEntity<String> createReplyToMessage(
             @RequestHeader("Authorization") String token,
             @RequestParam("messageCode") String messageCode,
@@ -136,7 +134,7 @@ public class MessageController {
         }
     }
 
-    @PostMapping("/create/forward")
+    @GetMapping("/create/forward")
     public ResponseEntity<String> createForwardedMessage(
             @RequestHeader("Authorization") String token,
             @RequestParam("recipientEmails") List<String> recipientEmails,
@@ -177,6 +175,29 @@ public class MessageController {
             return ResponseEntity.badRequest().body("This message has already been forwarded.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error creating message: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/markAsRead")
+    public ResponseEntity<String> markAsRead(@RequestHeader("Authorization") String token, @RequestParam String messageCode) {
+        User reader = AuthService.getUserFromToken(token);
+
+        if (reader == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired token");
+        }
+
+        if (messageCode == null || messageCode.isEmpty()) {
+            return ResponseEntity.badRequest().body("Message code cannot be empty");
+        }
+
+        int readerId = reader.getId();
+        try {
+            Recipient recipient = RecipientService.getRecipientByUserIdMessageCode(readerId, messageCode);
+            recipient.setRead(true);
+            RecipientService.updateRecipient(recipient);
+            return ResponseEntity.ok("Marked as read for recipient.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }
