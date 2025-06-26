@@ -66,10 +66,21 @@ public class MessageController {
         Message userMessage = null;
         try {
             userMessage = MessageService.getMessageByCode(code);
-        } catch (MessageNotFoundException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Message does not exist, or is not accessed by user.");
         }
-        return ResponseEntity.ok(userMessage);
+
+        if (userMessage.getSender().getId().equals(user.getId()))
+            return ResponseEntity.ok(userMessage);
+        else {
+            List<Recipient> messageRecipients = userMessage.getRecipients();
+            for (Recipient recipient : messageRecipients) {
+                if (recipient.getRecipient().getId().equals(user.getId()))
+                    return ResponseEntity.ok(userMessage);
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Message does not exist, or is not accessed by user.");
     }
 
     @GetMapping("/create/message")
